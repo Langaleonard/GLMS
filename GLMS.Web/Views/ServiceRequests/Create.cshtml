@@ -40,7 +40,9 @@
             </div>
 
             <div class="mb-3">
-                <label asp-for="CostUsd" class="form-label">Cost in USD</label>
+                <label asp-for="CostUsd" class="form-label">
+                    Cost in USD
+                </label>
 
                 <input asp-for="CostUsd"
                        class="form-control"
@@ -50,23 +52,33 @@
             </div>
 
             <div class="mb-3">
-                <label asp-for="ExchangeRate" class="form-label">Exchange Rate (Auto Calculated)</label>
+                <label asp-for="ExchangeRate" class="form-label">
+                    Exchange Rate (Auto Calculated)
+                </label>
 
                 <input asp-for="ExchangeRate"
                        class="form-control"
+                       value="0"
                        readonly />
 
-                <span asp-validation-for="ExchangeRate" class="text-danger"></span>
+                <small class="text-muted">
+                    This value will be calculated automatically.
+                </small>
             </div>
 
             <div class="mb-3">
-                <label asp-for="CostZar" class="form-label">Cost in ZAR (Auto Calculated)</label>
+                <label asp-for="CostZar" class="form-label">
+                    Cost in ZAR (Auto Calculated)
+                </label>
 
                 <input asp-for="CostZar"
                        class="form-control"
+                       value="0"
                        readonly />
 
-                <span asp-validation-for="CostZar" class="text-danger"></span>
+                <small class="text-muted">
+                    This value will be calculated automatically.
+                </small>
             </div>
 
             <div class="mb-3">
