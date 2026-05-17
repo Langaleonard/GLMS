@@ -1,0 +1,90 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="home-hero">
+    <h1>Global Logistics Management System</h1>
+
+    <p>
+        Welcome to GLMS, the enterprise platform developed for TechMove Logistics.
+        This system manages clients, contracts, and international service requests
+        through a modern scalable architecture built with ASP.NET Core MVC.
+    </p>
+
+    <a asp-controller="Clients" asp-action="Index" class="btn btn-light mt-3">
+        Manage Clients
+    </a>
+</div>
+
+<div class="row g-4">
+
+    <div class="col-md-4">
+        <div class="card shadow-soft h-100">
+            <div class="card-header">
+                Clients
+            </div>
+
+            <div class="card-body">
+                <h3 class="card-title">Client Management</h3>
+
+                <p>
+                    Create and manage logistics clients, regional information,
+                    and customer contact details.
+                </p>
+
+                <a asp-controller="Clients"
+                   asp-action="Index"
+                   class="btn btn-primary">
+                    Open Module
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-soft h-100">
+            <div class="card-header">
+                Contracts
+            </div>
+
+            <div class="card-body">
+                <h3 class="card-title">Contract Administration</h3>
+
+                <p>
+                    Track contract periods, service levels, signed agreements,
+                    and contract statuses.
+                </p>
+
+                <a asp-controller="Contracts"
+                   asp-action="Index"
+                   class="btn btn-primary">
+                    Open Module
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-soft h-100">
+            <div class="card-header">
+                Service Requests
+            </div>
+
+            <div class="card-body">
+                <h3 class="card-title">Service Requests</h3>
+
+                <p>
+                    Process logistics requests, manage international pricing,
+                    and track operational workflow.
+                </p>
+
+                <a asp-controller="ServiceRequests"
+                   asp-action="Index"
+                   class="btn btn-primary">
+                    Open Module
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
