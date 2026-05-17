@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using GLMS.Web.Data;
 using GLMS.Web.Models;
+using GLMS.Web.Models.Enums;
 
 namespace GLMS.Web.Controllers
 {
@@ -21,10 +22,42 @@ namespace GLMS.Web.Controllers
         }
 
         // GET: Contracts
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(
+            DateTime? startDate,
+            DateTime? endDate,
+            ContractStatus? status)
         {
-            var applicationDbContext = _context.Contracts.Include(c => c.Client);
-            return View(await applicationDbContext.ToListAsync());
+            var contracts = _context.Contracts
+                .Include(c => c.Client)
+                .AsQueryable();
+
+            if (startDate.HasValue)
+            {
+                contracts = contracts.Where(c =>
+                    c.StartDate >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                contracts = contracts.Where(c =>
+                    c.EndDate <= endDate.Value);
+            }
+
+            if (status.HasValue)
+            {
+                contracts = contracts.Where(c =>
+                    c.Status == status.Value);
+            }
+
+            ViewData["StartDate"] =
+                startDate?.ToString("yyyy-MM-dd");
+
+            ViewData["EndDate"] =
+                endDate?.ToString("yyyy-MM-dd");
+
+            ViewData["Status"] = status;
+
+            return View(await contracts.ToListAsync());
         }
 
         // GET: Contracts/Details/5
@@ -50,7 +83,9 @@ namespace GLMS.Web.Controllers
         // GET: Contracts/Create
         public IActionResult Create()
         {
-            ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "Name");
+            ViewData["ClientId"] =
+                new SelectList(_context.Clients, "Id", "Name");
+
             return View();
         }
 
@@ -63,12 +98,22 @@ namespace GLMS.Web.Controllers
         {
             if (contract.SignedAgreementFile != null)
             {
-                var extension = Path.GetExtension(contract.SignedAgreementFile.FileName);
+                var extension =
+                    Path.GetExtension(contract.SignedAgreementFile.FileName);
 
                 if (extension.ToLower() != ".pdf")
                 {
-                    ModelState.AddModelError("SignedAgreementFile", "Only PDF files are allowed.");
-                    ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "Name", contract.ClientId);
+                    ModelState.AddModelError(
+                        "SignedAgreementFile",
+                        "Only PDF files are allowed.");
+
+                    ViewData["ClientId"] =
+                        new SelectList(
+                            _context.Clients,
+                            "Id",
+                            "Name",
+                            contract.ClientId);
+
                     return View(contract);
                 }
 
@@ -83,24 +128,36 @@ namespace GLMS.Web.Controllers
                     Directory.CreateDirectory(uploadPath);
                 }
 
-                var filePath = Path.Combine(uploadPath, fileName);
+                var filePath =
+                    Path.Combine(uploadPath, fileName);
 
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                using (var stream =
+                       new FileStream(filePath, FileMode.Create))
                 {
-                    await contract.SignedAgreementFile.CopyToAsync(stream);
+                    await contract.SignedAgreementFile
+                        .CopyToAsync(stream);
                 }
 
-                contract.SignedAgreementPath = "/uploads/contracts/" + fileName;
+                contract.SignedAgreementPath =
+                    "/uploads/contracts/" + fileName;
             }
 
             if (ModelState.IsValid)
             {
                 _context.Add(contract);
+
                 await _context.SaveChangesAsync();
+
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "Name", contract.ClientId);
+            ViewData["ClientId"] =
+                new SelectList(
+                    _context.Clients,
+                    "Id",
+                    "Name",
+                    contract.ClientId);
+
             return View(contract);
         }
 
@@ -112,14 +169,21 @@ namespace GLMS.Web.Controllers
                 return NotFound();
             }
 
-            var contract = await _context.Contracts.FindAsync(id);
+            var contract =
+                await _context.Contracts.FindAsync(id);
 
             if (contract == null)
             {
                 return NotFound();
             }
 
-            ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "Name", contract.ClientId);
+            ViewData["ClientId"] =
+                new SelectList(
+                    _context.Clients,
+                    "Id",
+                    "Name",
+                    contract.ClientId);
+
             return View(contract);
         }
 
@@ -138,12 +202,22 @@ namespace GLMS.Web.Controllers
 
             if (contract.SignedAgreementFile != null)
             {
-                var extension = Path.GetExtension(contract.SignedAgreementFile.FileName);
+                var extension =
+                    Path.GetExtension(contract.SignedAgreementFile.FileName);
 
                 if (extension.ToLower() != ".pdf")
                 {
-                    ModelState.AddModelError("SignedAgreementFile", "Only PDF files are allowed.");
-                    ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "Name", contract.ClientId);
+                    ModelState.AddModelError(
+                        "SignedAgreementFile",
+                        "Only PDF files are allowed.");
+
+                    ViewData["ClientId"] =
+                        new SelectList(
+                            _context.Clients,
+                            "Id",
+                            "Name",
+                            contract.ClientId);
+
                     return View(contract);
                 }
 
@@ -158,14 +232,18 @@ namespace GLMS.Web.Controllers
                     Directory.CreateDirectory(uploadPath);
                 }
 
-                var filePath = Path.Combine(uploadPath, fileName);
+                var filePath =
+                    Path.Combine(uploadPath, fileName);
 
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                using (var stream =
+                       new FileStream(filePath, FileMode.Create))
                 {
-                    await contract.SignedAgreementFile.CopyToAsync(stream);
+                    await contract.SignedAgreementFile
+                        .CopyToAsync(stream);
                 }
 
-                contract.SignedAgreementPath = "/uploads/contracts/" + fileName;
+                contract.SignedAgreementPath =
+                    "/uploads/contracts/" + fileName;
             }
 
             if (ModelState.IsValid)
@@ -173,6 +251,7 @@ namespace GLMS.Web.Controllers
                 try
                 {
                     _context.Update(contract);
+
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
@@ -188,7 +267,13 @@ namespace GLMS.Web.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "Name", contract.ClientId);
+            ViewData["ClientId"] =
+                new SelectList(
+                    _context.Clients,
+                    "Id",
+                    "Name",
+                    contract.ClientId);
+
             return View(contract);
         }
 
@@ -217,7 +302,8 @@ namespace GLMS.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var contract = await _context.Contracts.FindAsync(id);
+            var contract =
+                await _context.Contracts.FindAsync(id);
 
             if (contract != null)
             {
@@ -225,6 +311,7 @@ namespace GLMS.Web.Controllers
             }
 
             await _context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
         }
 

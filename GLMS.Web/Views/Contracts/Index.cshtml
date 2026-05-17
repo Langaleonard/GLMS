@@ -1,65 +1,181 @@
 @model IEnumerable<GLMS.Web.Models.Contract>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Contracts";
 }
 
-<h1>Index</h1>
+<h1 class="page-title">Contracts</h1>
+
+<form asp-action="Index" method="get" class="card shadow-soft mb-4">
+    <div class="card-header">
+        Search / Filter Contracts
+    </div>
+
+    <div class="card-body">
+        <div class="row g-3">
+
+            <div class="col-md-3">
+                <label class="form-label">Start Date</label>
+
+                <input type="date"
+                       name="startDate"
+                       value="@ViewData["StartDate"]"
+                       class="form-control" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">End Date</label>
+
+                <input type="date"
+                       name="endDate"
+                       value="@ViewData["EndDate"]"
+                       class="form-control" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+
+                    @foreach (var item in Html.GetEnumSelectList<GLMS.Web.Models.Enums.ContractStatus>())
+                    {
+                        <option value="@item.Value"
+                                selected="@(ViewData["Status"]?.ToString() == item.Text)">
+                            @item.Text
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit"
+                        class="btn btn-primary me-2">
+                    Filter
+                </button>
+
+                <a asp-action="Index"
+                   class="btn btn-secondary">
+                    Reset
+                </a>
+            </div>
+
+        </div>
+    </div>
+</form>
 
 <p>
-    <a asp-action="Create">Create New</a>
+    <a asp-action="Create" class="btn btn-primary">
+        Create New Contract
+    </a>
 </p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Client)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.StartDate)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.EndDate)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Status)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ServiceLevel)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.SignedAgreementPath)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Client.ContactDetails)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.StartDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.EndDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Status)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.ServiceLevel)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.SignedAgreementPath)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+
+<div class="card shadow-soft">
+    <div class="card-body">
+
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Client</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                    <th>Service Level</th>
+                    <th>Agreement</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+
+                        <td>
+                            @item.Client?.Name
+                        </td>
+
+                        <td>
+                            @item.StartDate.ToString("yyyy-MM-dd")
+                        </td>
+
+                        <td>
+                            @item.EndDate.ToString("yyyy-MM-dd")
+                        </td>
+
+                        <td>
+                            @if (item.Status.ToString() == "Active")
+                            {
+                                <span class="badge bg-success">
+                                    Active
+                                </span>
+                            }
+                            else if (item.Status.ToString() == "Expired")
+                            {
+                                <span class="badge bg-danger">
+                                    Expired
+                                </span>
+                            }
+                            else if (item.Status.ToString() == "OnHold")
+                            {
+                                <span class="badge bg-warning text-dark">
+                                    On Hold
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">
+                                    @item.Status
+                                </span>
+                            }
+                        </td>
+
+                        <td>
+                            @item.ServiceLevel
+                        </td>
+
+                        <td>
+                            @if (!string.IsNullOrEmpty(item.SignedAgreementPath))
+                            {
+                                <a href="@item.SignedAgreementPath"
+                                   target="_blank"
+                                   class="btn btn-sm btn-primary">
+                                    View PDF
+                                </a>
+                            }
+                            else
+                            {
+                                <span class="text-muted">
+                                    No PDF
+                                </span>
+                            }
+                        </td>
+
+                        <td>
+                            <a asp-action="Edit"
+                               asp-route-id="@item.Id"
+                               class="btn btn-sm btn-warning">
+                                Edit
+                            </a>
+
+                            <a asp-action="Details"
+                               asp-route-id="@item.Id"
+                               class="btn btn-sm btn-info text-white">
+                                Details
+                            </a>
+
+                            <a asp-action="Delete"
+                               asp-route-id="@item.Id"
+                               class="btn btn-sm btn-danger">
+                                Delete
+                            </a>
+                        </td>
+
+                    </tr>
+                }
+            </tbody>
+
+        </table>
+
+    </div>
+</div>
