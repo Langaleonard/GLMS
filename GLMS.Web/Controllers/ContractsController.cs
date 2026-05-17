@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -37,6 +38,7 @@ namespace GLMS.Web.Controllers
             var contract = await _context.Contracts
                 .Include(c => c.Client)
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (contract == null)
             {
                 return NotFound();
@@ -48,24 +50,57 @@ namespace GLMS.Web.Controllers
         // GET: Contracts/Create
         public IActionResult Create()
         {
-            ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "ContactDetails");
+            ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "Name");
             return View();
         }
 
         // POST: Contracts/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,ClientId,StartDate,EndDate,Status,ServiceLevel,SignedAgreementPath")] Contract contract)
+        public async Task<IActionResult> Create(
+            [Bind("Id,ClientId,StartDate,EndDate,Status,ServiceLevel,SignedAgreementPath,SignedAgreementFile")]
+            Contract contract)
         {
+            if (contract.SignedAgreementFile != null)
+            {
+                var extension = Path.GetExtension(contract.SignedAgreementFile.FileName);
+
+                if (extension.ToLower() != ".pdf")
+                {
+                    ModelState.AddModelError("SignedAgreementFile", "Only PDF files are allowed.");
+                    ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "Name", contract.ClientId);
+                    return View(contract);
+                }
+
+                var fileName = Guid.NewGuid() + extension;
+
+                var uploadPath = Path.Combine(
+                    Directory.GetCurrentDirectory(),
+                    "wwwroot/uploads/contracts");
+
+                if (!Directory.Exists(uploadPath))
+                {
+                    Directory.CreateDirectory(uploadPath);
+                }
+
+                var filePath = Path.Combine(uploadPath, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await contract.SignedAgreementFile.CopyToAsync(stream);
+                }
+
+                contract.SignedAgreementPath = "/uploads/contracts/" + fileName;
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Add(contract);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "ContactDetails", contract.ClientId);
+
+            ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "Name", contract.ClientId);
             return View(contract);
         }
 
@@ -78,24 +113,59 @@ namespace GLMS.Web.Controllers
             }
 
             var contract = await _context.Contracts.FindAsync(id);
+
             if (contract == null)
             {
                 return NotFound();
             }
-            ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "ContactDetails", contract.ClientId);
+
+            ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "Name", contract.ClientId);
             return View(contract);
         }
 
         // POST: Contracts/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,ClientId,StartDate,EndDate,Status,ServiceLevel,SignedAgreementPath")] Contract contract)
+        public async Task<IActionResult> Edit(
+            int id,
+            [Bind("Id,ClientId,StartDate,EndDate,Status,ServiceLevel,SignedAgreementPath,SignedAgreementFile")]
+            Contract contract)
         {
             if (id != contract.Id)
             {
                 return NotFound();
+            }
+
+            if (contract.SignedAgreementFile != null)
+            {
+                var extension = Path.GetExtension(contract.SignedAgreementFile.FileName);
+
+                if (extension.ToLower() != ".pdf")
+                {
+                    ModelState.AddModelError("SignedAgreementFile", "Only PDF files are allowed.");
+                    ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "Name", contract.ClientId);
+                    return View(contract);
+                }
+
+                var fileName = Guid.NewGuid() + extension;
+
+                var uploadPath = Path.Combine(
+                    Directory.GetCurrentDirectory(),
+                    "wwwroot/uploads/contracts");
+
+                if (!Directory.Exists(uploadPath))
+                {
+                    Directory.CreateDirectory(uploadPath);
+                }
+
+                var filePath = Path.Combine(uploadPath, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await contract.SignedAgreementFile.CopyToAsync(stream);
+                }
+
+                contract.SignedAgreementPath = "/uploads/contracts/" + fileName;
             }
 
             if (ModelState.IsValid)
@@ -111,14 +181,14 @@ namespace GLMS.Web.Controllers
                     {
                         return NotFound();
                     }
-                    else
-                    {
-                        throw;
-                    }
+
+                    throw;
                 }
+
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "ContactDetails", contract.ClientId);
+
+            ViewData["ClientId"] = new SelectList(_context.Clients, "Id", "Name", contract.ClientId);
             return View(contract);
         }
 
@@ -133,6 +203,7 @@ namespace GLMS.Web.Controllers
             var contract = await _context.Contracts
                 .Include(c => c.Client)
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (contract == null)
             {
                 return NotFound();
@@ -147,6 +218,7 @@ namespace GLMS.Web.Controllers
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var contract = await _context.Contracts.FindAsync(id);
+
             if (contract != null)
             {
                 _context.Contracts.Remove(contract);

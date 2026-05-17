@@ -7,26 +7,33 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using GLMS.Web.Data;
 using GLMS.Web.Models;
+using GLMS.Web.Models.Enums;
+using GLMS.Web.Services;
 
 namespace GLMS.Web.Controllers
 {
     public class ServiceRequestsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly CurrencyService _currencyService;
 
-        public ServiceRequestsController(ApplicationDbContext context)
+        public ServiceRequestsController(
+            ApplicationDbContext context,
+            CurrencyService currencyService)
         {
             _context = context;
+            _currencyService = currencyService;
         }
 
-        // GET: ServiceRequests
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.ServiceRequests.Include(s => s.Contract);
+            var applicationDbContext = _context.ServiceRequests
+                .Include(s => s.Contract)
+                .ThenInclude(c => c.Client);
+
             return View(await applicationDbContext.ToListAsync());
         }
 
-        // GET: ServiceRequests/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -36,7 +43,9 @@ namespace GLMS.Web.Controllers
 
             var serviceRequest = await _context.ServiceRequests
                 .Include(s => s.Contract)
+                .ThenInclude(c => c.Client)
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (serviceRequest == null)
             {
                 return NotFound();
@@ -45,31 +54,59 @@ namespace GLMS.Web.Controllers
             return View(serviceRequest);
         }
 
-        // GET: ServiceRequests/Create
         public IActionResult Create()
         {
-            ViewData["ContractId"] = new SelectList(_context.Contracts, "Id", "ServiceLevel");
+            LoadContractsDropdown();
             return View();
         }
 
-        // POST: ServiceRequests/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,ContractId,Description,CostUsd,ExchangeRate,CostZar,Status")] ServiceRequest serviceRequest)
+        public async Task<IActionResult> Create(
+            [Bind("Id,ContractId,Description,CostUsd,ExchangeRate,CostZar,Status")]
+            ServiceRequest serviceRequest)
         {
+            var contract = await _context.Contracts
+                .Include(c => c.Client)
+                .FirstOrDefaultAsync(c => c.Id == serviceRequest.ContractId);
+
+            if (contract == null)
+            {
+                ModelState.AddModelError("", "Selected contract does not exist.");
+            }
+            else if (contract.Status == ContractStatus.Expired ||
+                     contract.Status == ContractStatus.OnHold)
+            {
+                ModelState.AddModelError("ContractId",
+                    "Service requests can only be created for Active contracts. This contract is not active.");
+            }
+
+            try
+            {
+                var exchangeRate = await _currencyService.GetUsdToZarRateAsync();
+
+                serviceRequest.ExchangeRate = exchangeRate;
+                serviceRequest.CostZar = serviceRequest.CostUsd * exchangeRate;
+
+                ModelState.Remove("ExchangeRate");
+                ModelState.Remove("CostZar");
+            }
+            catch
+            {
+                ModelState.AddModelError("", "Currency conversion failed. Please try again later.");
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Add(serviceRequest);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ContractId"] = new SelectList(_context.Contracts, "Id", "ServiceLevel", serviceRequest.ContractId);
+
+            LoadContractsDropdown(serviceRequest.ContractId);
             return View(serviceRequest);
         }
 
-        // GET: ServiceRequests/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -78,24 +115,55 @@ namespace GLMS.Web.Controllers
             }
 
             var serviceRequest = await _context.ServiceRequests.FindAsync(id);
+
             if (serviceRequest == null)
             {
                 return NotFound();
             }
-            ViewData["ContractId"] = new SelectList(_context.Contracts, "Id", "ServiceLevel", serviceRequest.ContractId);
+
+            LoadContractsDropdown(serviceRequest.ContractId);
             return View(serviceRequest);
         }
 
-        // POST: ServiceRequests/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,ContractId,Description,CostUsd,ExchangeRate,CostZar,Status")] ServiceRequest serviceRequest)
+        public async Task<IActionResult> Edit(
+            int id,
+            [Bind("Id,ContractId,Description,CostUsd,ExchangeRate,CostZar,Status")]
+            ServiceRequest serviceRequest)
         {
             if (id != serviceRequest.Id)
             {
                 return NotFound();
+            }
+
+            var contract = await _context.Contracts
+                .FirstOrDefaultAsync(c => c.Id == serviceRequest.ContractId);
+
+            if (contract == null)
+            {
+                ModelState.AddModelError("", "Selected contract does not exist.");
+            }
+            else if (contract.Status == ContractStatus.Expired ||
+                     contract.Status == ContractStatus.OnHold)
+            {
+                ModelState.AddModelError("ContractId",
+                    "Service requests can only be linked to Active contracts.");
+            }
+
+            try
+            {
+                var exchangeRate = await _currencyService.GetUsdToZarRateAsync();
+
+                serviceRequest.ExchangeRate = exchangeRate;
+                serviceRequest.CostZar = serviceRequest.CostUsd * exchangeRate;
+
+                ModelState.Remove("ExchangeRate");
+                ModelState.Remove("CostZar");
+            }
+            catch
+            {
+                ModelState.AddModelError("", "Currency conversion failed. Please try again later.");
             }
 
             if (ModelState.IsValid)
@@ -111,18 +179,17 @@ namespace GLMS.Web.Controllers
                     {
                         return NotFound();
                     }
-                    else
-                    {
-                        throw;
-                    }
+
+                    throw;
                 }
+
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ContractId"] = new SelectList(_context.Contracts, "Id", "ServiceLevel", serviceRequest.ContractId);
+
+            LoadContractsDropdown(serviceRequest.ContractId);
             return View(serviceRequest);
         }
 
-        // GET: ServiceRequests/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -132,7 +199,9 @@ namespace GLMS.Web.Controllers
 
             var serviceRequest = await _context.ServiceRequests
                 .Include(s => s.Contract)
+                .ThenInclude(c => c.Client)
                 .FirstOrDefaultAsync(m => m.Id == id);
+
             if (serviceRequest == null)
             {
                 return NotFound();
@@ -141,12 +210,12 @@ namespace GLMS.Web.Controllers
             return View(serviceRequest);
         }
 
-        // POST: ServiceRequests/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var serviceRequest = await _context.ServiceRequests.FindAsync(id);
+
             if (serviceRequest != null)
             {
                 _context.ServiceRequests.Remove(serviceRequest);
@@ -154,6 +223,24 @@ namespace GLMS.Web.Controllers
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+        }
+
+        private void LoadContractsDropdown(int? selectedContractId = null)
+        {
+            var contracts = _context.Contracts
+                .Include(c => c.Client)
+                .Select(c => new
+                {
+                    c.Id,
+                    DisplayText = c.Client!.Name + " - " + c.ServiceLevel + " (" + c.Status + ")"
+                })
+                .ToList();
+
+            ViewData["ContractId"] = new SelectList(
+                contracts,
+                "Id",
+                "DisplayText",
+                selectedContractId);
         }
 
         private bool ServiceRequestExists(int id)
