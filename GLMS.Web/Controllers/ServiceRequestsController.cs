@@ -81,20 +81,7 @@ namespace GLMS.Web.Controllers
                     "Service requests can only be created for Active contracts. This contract is not active.");
             }
 
-            try
-            {
-                var exchangeRate = await _currencyService.GetUsdToZarRateAsync();
-
-                serviceRequest.ExchangeRate = exchangeRate;
-                serviceRequest.CostZar = serviceRequest.CostUsd * exchangeRate;
-
-                ModelState.Remove("ExchangeRate");
-                ModelState.Remove("CostZar");
-            }
-            catch
-            {
-                ModelState.AddModelError("", "Currency conversion failed. Please try again later.");
-            }
+            await ApplyCurrencyConversionAsync(serviceRequest);
 
             if (ModelState.IsValid)
             {
@@ -114,7 +101,9 @@ namespace GLMS.Web.Controllers
                 return NotFound();
             }
 
-            var serviceRequest = await _context.ServiceRequests.FindAsync(id);
+            var serviceRequest = await _context.ServiceRequests
+                .Include(s => s.Contract)
+                .FirstOrDefaultAsync(s => s.Id == id);
 
             if (serviceRequest == null)
             {
@@ -142,7 +131,7 @@ namespace GLMS.Web.Controllers
 
             if (contract == null)
             {
-                ModelState.AddModelError("", "Selected contract does not exist.");
+                ModelState.AddModelError("ContractId", "Selected contract does not exist.");
             }
             else if (contract.Status == ContractStatus.Expired ||
                      contract.Status == ContractStatus.OnHold)
@@ -151,20 +140,7 @@ namespace GLMS.Web.Controllers
                     "Service requests can only be linked to Active contracts.");
             }
 
-            try
-            {
-                var exchangeRate = await _currencyService.GetUsdToZarRateAsync();
-
-                serviceRequest.ExchangeRate = exchangeRate;
-                serviceRequest.CostZar = serviceRequest.CostUsd * exchangeRate;
-
-                ModelState.Remove("ExchangeRate");
-                ModelState.Remove("CostZar");
-            }
-            catch
-            {
-                ModelState.AddModelError("", "Currency conversion failed. Please try again later.");
-            }
+            await ApplyCurrencyConversionAsync(serviceRequest);
 
             if (ModelState.IsValid)
             {
@@ -172,6 +148,7 @@ namespace GLMS.Web.Controllers
                 {
                     _context.Update(serviceRequest);
                     await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -182,8 +159,6 @@ namespace GLMS.Web.Controllers
 
                     throw;
                 }
-
-                return RedirectToAction(nameof(Index));
             }
 
             LoadContractsDropdown(serviceRequest.ContractId);
@@ -223,6 +198,24 @@ namespace GLMS.Web.Controllers
 
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task ApplyCurrencyConversionAsync(ServiceRequest serviceRequest)
+        {
+            try
+            {
+                var exchangeRate = await _currencyService.GetUsdToZarRateAsync();
+
+                serviceRequest.ExchangeRate = exchangeRate;
+                serviceRequest.CostZar = serviceRequest.CostUsd * exchangeRate;
+
+                ModelState.Remove("ExchangeRate");
+                ModelState.Remove("CostZar");
+            }
+            catch
+            {
+                ModelState.AddModelError("", "Currency conversion failed. Please try again later.");
+            }
         }
 
         private void LoadContractsDropdown(int? selectedContractId = null)
