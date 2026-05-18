@@ -207,18 +207,21 @@ h1, h2, h3, h4, h5 {
 /* Footer */
 .footer {
     background: var(--brand-blue);
-    color: var(--white);
+    color: #ffffff !important;
     border-top: 4px solid var(--brand-red);
     padding: 18px 0;
     position: static !important;
     width: 100%;
     white-space: normal;
     line-height: normal;
+    text-align: center;
 }
 
-.footer a {
-    color: var(--white);
-    text-decoration: none;
+.footer *,
+.footer a,
+.footer p,
+.footer span {
+    color: #ffffff !important;
 }
 
 /* Utilities */
