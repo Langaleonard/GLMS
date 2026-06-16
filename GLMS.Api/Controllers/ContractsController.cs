@@ -1,5 +1,6 @@
 using GLMS.Api.Data;
 using GLMS.Api.Models;
+using GLMS.Api.Models.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,74 +8,111 @@ namespace GLMS.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ClientsController : ControllerBase
+public class ContractsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
 
-    public ClientsController(ApplicationDbContext context)
+    public ContractsController(ApplicationDbContext context)
     {
         _context = context;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetClients()
+    public async Task<IActionResult> GetContracts(
+        DateTime? startDate,
+        DateTime? endDate,
+        ContractStatus? status)
     {
-        var clients = await _context.Clients
-            .Include(c => c.Contracts)
-            .ToListAsync();
+        var contracts = _context.Contracts
+            .Include(c => c.Client)
+            .AsQueryable();
 
-        return Ok(clients);
+        if (startDate.HasValue)
+        {
+            contracts = contracts.Where(c => c.StartDate >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            contracts = contracts.Where(c => c.EndDate <= endDate.Value);
+        }
+
+        if (status.HasValue)
+        {
+            contracts = contracts.Where(c => c.Status == status.Value);
+        }
+
+        return Ok(await contracts.ToListAsync());
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetClient(int id)
+    public async Task<IActionResult> GetContract(int id)
     {
-        var client = await _context.Clients
-            .Include(c => c.Contracts)
+        var contract = await _context.Contracts
+            .Include(c => c.Client)
             .FirstOrDefaultAsync(c => c.Id == id);
 
-        if (client == null)
+        if (contract == null)
         {
             return NotFound();
         }
 
-        return Ok(client);
+        return Ok(contract);
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateClient(Client client)
+    public async Task<IActionResult> CreateContract(Contract contract)
     {
-        _context.Clients.Add(client);
+        _context.Contracts.Add(contract);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetClient), new { id = client.Id }, client);
+        return CreatedAtAction(
+            nameof(GetContract),
+            new { id = contract.Id },
+            contract);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateClient(int id, Client client)
+    public async Task<IActionResult> UpdateContract(int id, Contract contract)
     {
-        if (id != client.Id)
+        if (id != contract.Id)
         {
             return BadRequest();
         }
 
-        _context.Entry(client).State = EntityState.Modified;
+        _context.Entry(contract).State = EntityState.Modified;
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpPatch("{id}/status")]
+    public async Task<IActionResult> UpdateContractStatus(int id, ContractStatus status)
+    {
+        var contract = await _context.Contracts.FindAsync(id);
+
+        if (contract == null)
+        {
+            return NotFound();
+        }
+
+        contract.Status = status;
         await _context.SaveChangesAsync();
 
         return NoContent();
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteClient(int id)
+    public async Task<IActionResult> DeleteContract(int id)
     {
-        var client = await _context.Clients.FindAsync(id);
+        var contract = await _context.Contracts.FindAsync(id);
 
-        if (client == null)
+        if (contract == null)
         {
             return NotFound();
         }
 
-        _context.Clients.Remove(client);
+        _context.Contracts.Remove(contract);
         await _context.SaveChangesAsync();
 
         return NoContent();
