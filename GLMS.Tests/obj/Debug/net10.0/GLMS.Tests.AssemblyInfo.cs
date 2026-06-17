@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GLMS.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+556dd997141d967cd82f309a0bf5d2e4373cc8f5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+851c6985a8962cfeff51eead506be881edbc5704")]
 [assembly: System.Reflection.AssemblyProductAttribute("GLMS.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GLMS.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
