@@ -10,13 +10,15 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddHttpClient<CurrencyService>();
 
-// API client for Part 3 service-oriented architecture
+var glmsApiBaseUrl =
+    builder.Configuration["GLMSApi:BaseUrl"]
+    ?? "http://localhost:5155/";
+
 builder.Services.AddHttpClient("GLMSApi", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5155/");
+    client.BaseAddress = new Uri(glmsApiBaseUrl);
 });
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
